@@ -252,7 +252,8 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
 
         volSurfaceList(sensorDE)->push_back(surf);
 
-        ///////////////////
+        DetElement ladderDE(layerDE, laddername, x_det.id());
+        ladderDE.setPlacement(pv);
 
         // get cellID and fill map< cellID of surface, vector of cellID of neighbouring surfaces >
 
@@ -260,7 +261,7 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
 
         const dd4hep::CellID cellID = encoder.lowWord(); // 32 bits
 
-        dd4hep::long64 cellID = encoder.lowWord(); // 32 bits
+        // encoding
 
         // compute neighbours
 
@@ -313,17 +314,17 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
   double tube_thick =  1.0 * dd4hep::mm ;
   double inner_r    =  minRadius - 1.1 * tube_thick ;
   double outer_r    =  inner_r + tube_thick ;
-  double z_half     =  minZhalf ;
-
+  double z_half     =  minZhalf ; 
+  
   Tube   tubeSolid (inner_r, outer_r, z_half ) ;
   Volume tube_vol( name+"_inner_cylinder_air", tubeSolid ,  theDetector.material("Air") ) ;
-
+  
   assembly.placeVolume( tube_vol , Transform3D() ) ;
-
+  
   Vector3D ocyl(  inner_r + 0.5*tube_thick , 0. , 0. ) ;
-
+  
   VolCylinder cylSurf( tube_vol , SurfaceType( SurfaceType::Helper ) , 0.5*tube_thick  , 0.5*tube_thick , ocyl ) ;
-
+  
   volSurfaceList( tracker )->push_back( cylSurf ) ;
 
 #endif //----------------------------------------------------------------------------------
