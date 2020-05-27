@@ -196,7 +196,7 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
     VolPlane surf(sens_vol, type, inner_thickness, outer_thickness, u, v, n); //,o ) ;
 
     //--------------------------------------------
-
+     
     sens.setType("tracker");
     sens_vol.setSensitiveDetector(sens);
 
@@ -208,13 +208,22 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
     for (int j = 0; j < nLadders; ++j)
     {
 
+<<<<<<< HEAD
       double phi = phi0 + j * dphi;
+=======
+      double phi = phi0 + j * dphi  ;
+
+      std::string laddername = layername + _toString(j,"_ladder%d");
+
+      RotationZYX rot( phi , 0, 0  ) ;
+>>>>>>> 975bf03 (Revoked ZPlanarTracker. Implemented Z segmentation in a separate plugin: ZSegmentedPlanarTracker)
 
       std::string laddername = layername + _toString(j, "_ladder%d");
 
       RotationZYX rot(phi, 0, 0);
 
       // --- place support -----
+<<<<<<< HEAD
       double lthick = supp_thickness;
       double radius = supp_distance;
       double offset = supp_offset;
@@ -222,9 +231,18 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
       pv = layer_assembly.placeVolume(supp_vol, Transform3D(rot, Position((radius + lthick / 2.) * cos(phi) - offset * sin(phi),
                                                                           (radius + lthick / 2.) * sin(phi) + offset * cos(phi),
                                                                           0.)));
-
+=======
+      double lthick = supp_thickness ;
+      double radius = supp_distance ;
+      double offset = supp_offset ;
+      
+      pv = layer_assembly.placeVolume( supp_vol,Transform3D( rot, Position( ( radius + lthick/2. ) * cos(phi)  - offset * sin( phi ) ,
+									    ( radius + lthick/2. ) * sin(phi)  + offset * cos( phi ) ,
+									    0. ) ));
+>>>>>>> 975bf03 (Revoked ZPlanarTracker. Implemented Z segmentation in a separate plugin: ZSegmentedPlanarTracker)
 
       // --- place sensitive -----
+<<<<<<< HEAD
       lthick = sens_thickness;
       radius = sens_distance;
       offset = sens_offset;
@@ -235,23 +253,51 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
 
       //      pv.addPhysVolID("layer", layer_id ).addPhysVolID( "module" , j ).addPhysVolID("sensor", 0 )   ;
       pv.addPhysVolID("module", j).addPhysVolID("sensor", 0);
+=======
+      lthick = sens_thickness ;
+      radius = sens_distance ;
+      offset = sens_offset ;
+      
+      pv = layer_assembly.placeVolume( sens_vol,Transform3D( rot, Position( ( radius + lthick/2. ) * cos(phi)  - offset * sin( phi ) ,
+									    ( radius + lthick/2. ) * sin(phi)  + offset * cos( phi ) ,
+									    0. ) ));
+>>>>>>> 975bf03 (Revoked ZPlanarTracker. Implemented Z segmentation in a separate plugin: ZSegmentedPlanarTracker)
 
       DetElement ladderDE(layerDE, laddername, x_det.id());
       ladderDE.setPlacement(pv);
 
+<<<<<<< HEAD
       volSurfaceList(ladderDE)->push_back(surf);
+=======
 
-        }
+      //      pv.addPhysVolID("layer", layer_id ).addPhysVolID( "module" , j ).addPhysVolID("sensor", 0 )   ;
+      pv.addPhysVolID( "module" , j ).addPhysVolID("sensor", 0 )   ;
 
+
+      DetElement   ladderDE( layerDE ,  laddername , x_det.id() );
+      ladderDE.setPlacement( pv ) ;
+
+      volSurfaceList( ladderDE )->push_back( surf ) ;
+>>>>>>> 975bf03 (Revoked ZPlanarTracker. Implemented Z segmentation in a separate plugin: ZSegmentedPlanarTracker)
+
+      ///////////////////
+
+<<<<<<< HEAD
       // get cellID and fill map< cellID of surface, vector of cellID of neighbouring surfaces >
 
       // encoding
+=======
+      //get cellID and fill map< cellID of surface, vector of cellID of neighbouring surfaces >
+
+      //encoding
+>>>>>>> 975bf03 (Revoked ZPlanarTracker. Implemented Z segmentation in a separate plugin: ZSegmentedPlanarTracker)
 
       encoder[lcio::LCTrackerCellID::side()] = lcio::ILDDetID::barrel;
       encoder[lcio::LCTrackerCellID::layer()] = layer_id;
       encoder[lcio::LCTrackerCellID::module()] = nLadders;
       encoder[lcio::LCTrackerCellID::sensor()] = 0; // there is no sensor defintion in VertexBarrel at the moment
 
+<<<<<<< HEAD
       const dd4hep::CellID cellID = encoder.lowWord(); // 32 bits
 
       // compute neighbours
@@ -284,8 +330,43 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
       ///////////////////
     }
 
-    //    tracker.setVisAttributes(theDetector, x_det.visStr(),laddervol);
+=======
+      dd4hep::long64 cellID = encoder.lowWord(); // 32 bits
 
+      //compute neighbours 
+
+      int n_neighbours_module = 1; // 1 gives the adjacent modules (i do not think we would like to change this)
+
+      int newmodule=0;
+
+      for(int imodule=-n_neighbours_module; imodule<=n_neighbours_module; imodule++){ // neighbouring modules
+		    
+	if (imodule==0) continue; // cellID we started with
+	newmodule = nLadders + imodule;
+		    
+	//compute special case at the boundary  
+	//general computation to allow (if necessary) more then adiacent neighbours (ie: +-2)
+	if (newmodule < 0) newmodule = nLadders + newmodule;
+	if (newmodule >= nLadders) newmodule = newmodule - nLadders;
+
+	//encoding
+	encoder[lcio::LCTrackerCellID::module()] = newmodule;
+	encoder[lcio::LCTrackerCellID::sensor()] = 0;
+
+	neighbourSurfacesData->sameLayer[cellID].push_back(encoder.lowWord());
+ 
+      }
+
+      ///////////////////
+      
+
+
+    }
+    
+
+>>>>>>> 975bf03 (Revoked ZPlanarTracker. Implemented Z segmentation in a separate plugin: ZSegmentedPlanarTracker)
+    //    tracker.setVisAttributes(theDetector, x_det.visStr(),laddervol);
+    
     // is this needed ??
     layer_assembly->GetShape()->ComputeBBox();
   }
@@ -296,19 +377,19 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
   double tube_thick =  1.0 * dd4hep::mm ;
   double inner_r    =  minRadius - 1.1 * tube_thick ;
   double outer_r    =  inner_r + tube_thick ;
-  double z_half     =  minZhalf ;
-
+  double z_half     =  minZhalf ; 
+  
   Tube   tubeSolid (inner_r, outer_r, z_half ) ;
   Volume tube_vol( name+"_inner_cylinder_air", tubeSolid ,  theDetector.material("Air") ) ;
-
+  
   assembly.placeVolume( tube_vol , Transform3D() ) ;
-
+  
   Vector3D ocyl(  inner_r + 0.5*tube_thick , 0. , 0. ) ;
-
+  
   VolCylinder cylSurf( tube_vol , SurfaceType( SurfaceType::Helper ) , 0.5*tube_thick  , 0.5*tube_thick , ocyl ) ;
-
+  
   volSurfaceList( tracker )->push_back( cylSurf ) ;
-
+  
 #endif //----------------------------------------------------------------------------------
 
   tracker.addExtension<ZPlanarData>(zPlanarData);
@@ -320,12 +401,21 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
   assembly.setVisAttributes(theDetector, x_det.visStr());
 
   pv = mother.placeVolume(assembly);
+<<<<<<< HEAD
 
   pv.addPhysVolID("system", x_det.id()).addPhysVolID("side", 0);
 
   tracker.setPlacement(pv);
 
   assembly->GetShape()->ComputeBBox();
+=======
+  
+  pv.addPhysVolID( "system", x_det.id() ).addPhysVolID("side",0 )  ;
+  
+  tracker.setPlacement(pv);
+       
+  assembly->GetShape()->ComputeBBox() ;
+>>>>>>> 975bf03 (Revoked ZPlanarTracker. Implemented Z segmentation in a separate plugin: ZSegmentedPlanarTracker)
 
   return tracker;
 }
