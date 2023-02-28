@@ -90,7 +90,7 @@ static Ref_t create_detector(Detector &theDetector, xml_h e, SensitiveDetector)
       Volume l_vol(l_nam, l_tub, air);
       l_vol.setVisAttributes(theDetector, x_layer.visStr());
 
-      Tube    l_tub(rmin, rmax, layerWidth, 2 * M_PI);
+      Tube    l_tub(rmin, rmax, layerWidth / 2.0, 2 * M_PI);
       Volume  l_vol(l_nam, l_tub, air);
       l_vol.setVisAttributes(theDetector, x_layer.visStr());
 
