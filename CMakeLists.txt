@@ -37,6 +37,7 @@ ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 option(BUILD_TESTING "Enable and build tests" ON)
 option(INSTALL_COMPACT_FILES "Copy compact files to install area" OFF)
+option(INSTALL_MUONC_FILES "Install Geometry files for MuonCollider" OFF)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
