@@ -184,3 +184,12 @@ write_basic_package_version_file(
 install(FILES ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_CMAKEDIR}/k4geoConfig.cmake
               ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_CMAKEDIR}/k4geoConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_CMAKEDIR} )
+
+if(INSTALL_MUONC_FILES)
+  SET(MUONC_GEO_DIR ${CMAKE_INSTALL_PREFIX}/share/lcgeo/compact/
+      CACHE PATH "Installation directory for geometry files")
+
+  INSTALL(DIRECTORY MuColl DESTINATION ${MUONC_GEO_DIR}
+          PATTERN "*.md" EXCLUDE
+          PATTERN "CLIC_o*" EXCLUDE)
+endif()
