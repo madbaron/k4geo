@@ -127,16 +127,6 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
     double sens_distance = x_sensitive.distance();
     double sens_thickness = x_sensitive.thickness();
     double sens_width = x_sensitive.width();
-    int sens_nmodules = 1;
-    try
-    {
-      sens_nmodules = x_sensitive.nmodules();
-    }
-    catch (const std::exception &e)
-    {
-      sens_nmodules = 1;
-    }
-    double sens_modlength = sens_zhalf * 2.0 / sens_nmodules;
 
     std::string sens_vis = x_sensitive.visStr();
     std::string sens_matS = x_sensitive.materialStr();
@@ -156,8 +146,8 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
     //  store the data in an extension to be used for reconstruction
     ZPlanarData::LayerLayout thisLayer;
 
-    thisLayer.sensorsPerLadder = sens_nmodules;
-    thisLayer.lengthSensor = sens_modlength;
+    thisLayer.sensorsPerLadder = 1; // for now only one planar sensor
+    thisLayer.lengthSensor = 2. * sens_zhalf;
 
     thisLayer.distanceSupport = supp_distance;
     thisLayer.offsetSupport = supp_offset;
@@ -181,8 +171,8 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
     Material sens_mat = theDetector.material(sens_matS);
 
     //-------
+    Box sens_box(sens_thickness / 2., sens_width / 2., sens_zhalf);
     Box supp_box(supp_thickness / 2., supp_width / 2., supp_zhalf);
-    Box sens_box(sens_thickness / 2., sens_width / 2., sens_modlength / 2.0);
 
     Volume supp_vol(layername + "_supp", supp_box, supp_mat);
     Volume sens_vol(layername + "_sens", sens_box, sens_mat);
@@ -219,6 +209,9 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
     {
 
       double phi = phi0 + j * dphi;
+
+      std::string laddername = layername + _toString(j, "_ladder%d");
+
       RotationZYX rot(phi, 0, 0);
 
       // --- place support -----
@@ -235,71 +228,59 @@ static Ref_t create_element(Detector &theDetector, xml_h e, SensitiveDetector se
       radius = sens_distance;
       offset = sens_offset;
 
-      //--------- loop over sensors ---------------------------
-      for (int s = 0; s < sens_nmodules; ++s)
-      {
+      pv = layer_assembly.placeVolume(sens_vol, Transform3D(rot, Position((radius + lthick / 2.) * cos(phi) - offset * sin(phi),
+                                                                          (radius + lthick / 2.) * sin(phi) + offset * cos(phi),
+                                                                          0.)));
 
-        pv = layer_assembly.placeVolume(sens_vol, Transform3D(rot, Position((radius + lthick / 2.) * cos(phi) - offset * sin(phi),
-                                                                            (radius + lthick / 2.) * sin(phi) + offset * cos(phi),
-                                                                            -sens_zhalf + sens_modlength * (float(s) + 0.5))));
+      //      pv.addPhysVolID("layer", layer_id ).addPhysVolID( "module" , j ).addPhysVolID("sensor", 0 )   ;
+      pv.addPhysVolID("module", j).addPhysVolID("sensor", 0);
 
-        //      pv.addPhysVolID("layer", layer_id ).addPhysVolID( "module" , j ).addPhysVolID("sensor", 0 )   ;
-        pv.addPhysVolID("module", j).addPhysVolID("sensor", s);
+      DetElement ladderDE(layerDE, laddername, x_det.id());
+      ladderDE.setPlacement(pv);
 
-        std::string sensorname = layername + _toString(j, "_ladder%d") + _toString(s, "_sensor%d");
-        DetElement sensorDE(layerDE, sensorname, x_det.id());
-        sensorDE.setPlacement(pv);
+      volSurfaceList(ladderDE)->push_back(surf);
 
-        volSurfaceList(sensorDE)->push_back(surf);
+      ///////////////////
 
-        DetElement ladderDE(layerDE, laddername, x_det.id());
-        ladderDE.setPlacement(pv);
+      // get cellID and fill map< cellID of surface, vector of cellID of neighbouring surfaces >
 
-        // get cellID and fill map< cellID of surface, vector of cellID of neighbouring surfaces >
+      // encoding
+
+      encoder[lcio::LCTrackerCellID::side()] = lcio::ILDDetID::barrel;
+      encoder[lcio::LCTrackerCellID::layer()] = layer_id;
+      encoder[lcio::LCTrackerCellID::module()] = nLadders;
+      encoder[lcio::LCTrackerCellID::sensor()] = 0; // there is no sensor defintion in VertexBarrel at the moment
+
+      const dd4hep::CellID cellID = encoder.lowWord(); // 32 bits
+
+      // compute neighbours
+
+      int n_neighbours_module = 1; // 1 gives the adjacent modules (i do not think we would like to change this)
+
+      int newmodule = 0;
+
+      for (int imodule = -n_neighbours_module; imodule <= n_neighbours_module; imodule++)
+      { // neighbouring modules
+
+        if (imodule == 0)
+          continue; // cellID we started with
+        newmodule = nLadders + imodule;
+
+        // compute special case at the boundary
+        // general computation to allow (if necessary) more then adiacent neighbours (ie: +-2)
+        if (newmodule < 0)
+          newmodule = nLadders + newmodule;
+        if (newmodule >= nLadders)
+          newmodule = newmodule - nLadders;
 
         // encoding
+        encoder[lcio::LCTrackerCellID::module()] = newmodule;
+        encoder[lcio::LCTrackerCellID::sensor()] = 0;
 
-        const dd4hep::CellID cellID = encoder.lowWord(); // 32 bits
-
-        // encoding
-
-        // compute neighbours
-
-        int n_neighbours_ladder = 1; // 1 gives the adjacent modules
-        int n_neighbours_sensor = 1;
-        int newladder = 0;
-        int newsensor = 0;
-
-        for (int iladder = -n_neighbours_ladder; iladder <= n_neighbours_ladder; iladder++)
-        { // neighbouring ladders
-          newladder = j + iladder;
-          // compute special case at the boundary
-          if (newladder < 0)
-            newladder = nLadders + newladder;
-          if (newladder >= nLadders)
-            newladder = newladder - nLadders;
-
-          for (int isensor = -n_neighbours_sensor; isensor <= n_neighbours_sensor; isensor++)
-          { // neighbouring sensors
-            if (iladder == 0 && isensor == 0)
-              continue; // sensor we started with
-            newsensor = s + isensor;
-            // skip sensors outside boundaries
-            if (newsensor < 0)
-              continue;
-            if (newsensor >= sens_nmodules)
-              continue;
-
-            // encoding
-            encoder[lcio::LCTrackerCellID::module()] = newladder;
-            encoder[lcio::LCTrackerCellID::sensor()] = newsensor;
-
-            neighbourSurfacesData->sameLayer[cellID].push_back(encoder.lowWord());
-          }
-        }
-
-        ///////////////////
+        neighbourSurfacesData->sameLayer[cellID].push_back(encoder.lowWord());
       }
+
+      ///////////////////
     }
 
     //    tracker.setVisAttributes(theDetector, x_det.visStr(),laddervol);
